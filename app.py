@@ -1,27 +1,24 @@
-from flask import Flask,request, jsonify
-import mysql.connector
+from flask import Flask,request, jsonify,session
+import pymysql
+
 app=Flask(__name__)
 
-con=mysql.connector.connect(user='root',passwd='123456', charset='utf8')
-cur=con.cursor()
-cur.execute("create database if not exists test character set utf8;")
-cur.execute("use test")
-cur.execute("create table if not exists"
+con=pymysql.connect(user='root',passwd='reina0526', charset='utf8')
+cursor=con.cursor()
+cursor.execute("create database if not exists test character set utf8;")
+cursor.execute("use test")
+cursor.execute("create table if not exists"
             " user(username char(20),nickname char(20),password char(20),sex char(1))character set utf8;")
-cur.execute("create table if not exists guestbook"
+cursor.execute("create table if not exists guestbook"
             "(content char(200),username char(20),nickname char(20),post_time timestamp(6),last_correct timestamp(6))"
             "character set utf8;")
-cursor=con.cursor()
-
 @app.route('/',methods=['GET'])
 def board():
     value=cursor.fetchall()
-    for x in value:
-        content=x[0]
-        nickname=x[2]
-        post_time=x[3]
-        last_correct=x[4]
-        return board
+    cursor.close()
+    con.close()
+    board=jsonify(value)
+    return board
 
 @app.route('/guestbook',methods=['POST'])
 def write():
@@ -52,7 +49,7 @@ def correct():
     con.close()
     return '修改成功'
 
-@app.route('guestbook/deletion',methods=['DELETTE'])
+@app.route('/guestbook/deletion',methods=['DELETTE'])
 def deletion():
     content=board.get('content')
     username=session.get('username')
@@ -88,6 +85,19 @@ def register():
     cursor.close()
     con.close()
     return '注册成功'
+
+@app.route('/me',methods=['GET'])
+def my_information():
+    username=session.get('username')
+    if session.get('username') is None:
+        raise HttpError(401, "请先登录")
+    cursor.execute('select `username`, `nickname`,`sex` from `user` where `username`=%s', (username,))
+    data=cursor.fetchall()
+    cursor.close()
+    con.close()
+    response=jsonify(data)
+    return response
+
 
 
 
